@@ -3,103 +3,109 @@ package com.example.praktam_2417051027
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.praktam_2417051027.model.Makanan
 import com.example.praktam_2417051027.model.MakananSource
 import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
-import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             PrakTAM_2417051027Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(modifier = Modifier.padding(innerPadding))
-                }
+                DaftarMakananScreen()
             }
         }
     }
 }
 
 @Composable
-fun Greeting(modifier: Modifier = Modifier) {
+fun DaftarMakananScreen() {
 
     val daftarMakanan = MakananSource.dummyMakanan
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState())
     ) {
 
         Text(
-            text = "Aplikasi Daftar Makanan Favorit",
-            fontSize = 20.sp,
+            text = "Daftar Makanan Favorit",
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(text = "Nama: Zahra Ayesha")
-        Text(text = "NPM: 2417051027")
-
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         daftarMakanan.forEach { makanan ->
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
+            ItemMakanan(makanan)
 
-                Column(modifier = Modifier.padding(12.dp)) {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
 
-                    Image(
-                        painter = painterResource(id = makanan.imageRes),
-                        contentDescription = makanan.nama,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
-                        contentScale = ContentScale.Crop
-                    )
+@Composable
+fun ItemMakanan(makanan: Makanan) {
 
-                    Spacer(modifier = Modifier.height(8.dp))
+    Column {
 
-                    Text(
-                        text = makanan.nama,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(text = makanan.deskripsi)
-                    Text(text = "Harga: Rp ${makanan.harga}")
-                }
-            }
+        Image(
+            painter = painterResource(id = makanan.imageRes),
+            contentDescription = makanan.nama,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = makanan.nama,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = makanan.deskripsi,
+            fontSize = 12.sp
+        )
+
+        Text(
+            text = "Harga: Rp ${makanan.harga}",
+            fontSize = 12.sp
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(onClick = { }) {
+            Text("Lihat Detail", fontSize = 11.sp)
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun PreviewDaftarMakanan() {
     PrakTAM_2417051027Theme {
-        Greeting()
+        DaftarMakananScreen()
     }
 }
