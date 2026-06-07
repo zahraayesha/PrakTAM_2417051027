@@ -3,7 +3,6 @@ package com.example.praktam_2417051027
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,6 +40,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.praktam_2417051027.model.Makanan
 import com.example.praktam_2417051027.model.MakananSource
 import com.example.praktam_2417051027.model.RetrofitClient
@@ -48,7 +48,7 @@ import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
 import kotlinx.coroutines.launch
 
 private const val MAKANAN_API_URL =
-    "https://gist.githubusercontent.com/zahraayesha/53181eb693c0435344214c52d65f3c6c/raw/611add1f64bf2bc0762f6b810cf3c230d9f2c7b9/menu_makanan.json"
+    "https://gist.githubusercontent.com/zahraayesha/53181eb693c0435344214c52d65f3c6c/raw/menu_makanan.json"
 
 class MainActivity : ComponentActivity() {
 
@@ -218,11 +218,13 @@ fun ItemMakanan(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = getImageResource(makanan.imageName)),
+            AsyncImage(
+                model = makanan.imageUrl,
                 contentDescription = makanan.nama,
                 modifier = Modifier.size(95.dp),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.mieayam),
+                error = painterResource(id = R.drawable.mieayam)
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -281,13 +283,15 @@ fun DetailMakananScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
-        Image(
-            painter = painterResource(id = getImageResource(makanan.imageName)),
+        AsyncImage(
+            model = makanan.imageUrl,
             contentDescription = makanan.nama,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(230.dp),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.mieayam),
+            error = painterResource(id = R.drawable.mieayam)
         )
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -324,15 +328,6 @@ fun DetailMakananScreen(
         ) {
             Text(text = "Kembali")
         }
-    }
-}
-
-fun getImageResource(imageName: String): Int {
-    return when (imageName) {
-        "mieayam" -> R.drawable.mieayam
-        "dimsum" -> R.drawable.dimsum
-        "risoles" -> R.drawable.risoles
-        else -> R.drawable.mieayam
     }
 }
 

@@ -6,6 +6,6 @@ data class Makanan(
     val nama: String,
     val deskripsi: String,
     val harga: Int,
-    @SerializedName("image_name")
-    val imageName: String
+    @SerializedName("image_url")
+    val imageUrl: String
 )
