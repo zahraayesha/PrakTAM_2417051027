@@ -16,8 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,16 +24,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.praktam_2417051027.model.Makanan
 import com.example.praktam_2417051027.model.MakananSource
 import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
@@ -45,24 +44,37 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PrakTAM_2417051027Theme {
-                DaftarMakananScreen()
+                AppNavigation()
             }
         }
     }
 }
 
 @Composable
-fun DaftarMakananScreen() {
-    val daftarMakanan = MakananSource.dummyMakanan
-    val pilihanFilter = listOf("Semua", "Murah", "Favorit")
+fun AppNavigation() {
+    val navController = rememberNavController()
 
-    var filterDipilih by remember { mutableStateOf("Semua") }
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") {
+            DaftarMakananScreen(navController = navController)
+        }
 
-    val makananTampil = when (filterDipilih) {
-        "Murah" -> daftarMakanan.filter { it.harga <= 10000 }
-        "Favorit" -> daftarMakanan.filter { it.nama == "Mie Ayam" || it.nama == "Dimsum" }
-        else -> daftarMakanan
+        composable("detail/{index}") { backStackEntry ->
+            val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
+            DetailMakananScreen(
+                index = index,
+                navController = navController
+            )
+        }
     }
+}
+
+@Composable
+fun DaftarMakananScreen(navController: NavController) {
+    val daftarMakanan = MakananSource.dummyMakanan
 
     Column(
         modifier = Modifier
@@ -79,57 +91,33 @@ fun DaftarMakananScreen() {
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Pilihan menu makanan sederhana dengan tampilan yang lebih rapi.",
+            text = "Pilih menu makanan yang ingin kamu lihat.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Kategori",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(pilihanFilter) { filter ->
-                Button(
-                    onClick = {
-                        filterDipilih = filter
-                    }
-                ) {
-                    Text(text = filter)
-                }
-            }
-        }
-
         Spacer(modifier = Modifier.height(18.dp))
-
-        Text(
-            text = "Menu Tersedia",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(makananTampil) { makanan ->
-                ItemMakanan(makanan = makanan)
+            itemsIndexed(daftarMakanan) { index, makanan ->
+                ItemMakanan(
+                    makanan = makanan,
+                    onDetailClick = {
+                        navController.navigate("detail/$index")
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ItemMakanan(makanan: Makanan) {
+fun ItemMakanan(
+    makanan: Makanan,
+    onDetailClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -180,7 +168,7 @@ fun ItemMakanan(makanan: Makanan) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Button(onClick = { }) {
+                Button(onClick = onDetailClick) {
                     Text(
                         text = "Lihat Detail",
                         style = MaterialTheme.typography.bodySmall
@@ -191,10 +179,69 @@ fun ItemMakanan(makanan: Makanan) {
     }
 }
 
+@Composable
+fun DetailMakananScreen(
+    index: Int,
+    navController: NavController
+) {
+    val daftarMakanan = MakananSource.dummyMakanan
+    val makanan = daftarMakanan.getOrElse(index) { daftarMakanan[0] }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
+    ) {
+        Image(
+            painter = painterResource(id = makanan.imageRes),
+            contentDescription = makanan.nama,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(230.dp),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = makanan.nama,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = makanan.deskripsi,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Harga: Rp ${makanan.harga}",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = {
+                navController.popBackStack()
+            }
+        ) {
+            Text(text = "Kembali")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewDaftarMakanan() {
     PrakTAM_2417051027Theme {
-        DaftarMakananScreen()
+        AppNavigation()
     }
 }
