@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,9 +22,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -37,6 +46,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.praktam_2417051027.model.Makanan
 import com.example.praktam_2417051027.model.MakananSource
 import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -187,54 +198,100 @@ fun DetailMakananScreen(
     val daftarMakanan = MakananSource.dummyMakanan
     val makanan = daftarMakanan.getOrElse(index) { daftarMakanan[0] }
 
-    Column(
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var isLoading by remember { mutableStateOf(false) }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
     ) {
-        Image(
-            painter = painterResource(id = makanan.imageRes),
-            contentDescription = makanan.nama,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(230.dp),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Text(
-            text = makanan.nama,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = makanan.deskripsi,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Harga: Rp ${makanan.harga}",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Button(
-            onClick = {
-                navController.popBackStack()
-            }
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Text(text = "Kembali")
+            Image(
+                painter = painterResource(id = makanan.imageRes),
+                contentDescription = makanan.nama,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(230.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = makanan.nama,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = makanan.deskripsi,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Harga: Rp ${makanan.harga}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                enabled = !isLoading,
+                onClick = {
+                    scope.launch {
+                        isLoading = true
+                        delay(2000)
+                        isLoading = false
+                        snackbarHostState.showSnackbar("${makanan.nama} berhasil dipesan")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(text = "Memproses...")
+                } else {
+                    Text(text = "Pesan Sekarang")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                enabled = !isLoading,
+                onClick = {
+                    navController.popBackStack()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Kembali")
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 
