@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,10 +23,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +43,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.praktam_2417051027.model.Makanan
 import com.example.praktam_2417051027.model.MakananSource
+import com.example.praktam_2417051027.model.RetrofitClient
 import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val MAKANAN_API_URL =
+    "https://gist.githubusercontent.com/zahraayesha/53181eb693c0435344214c52d65f3c6c/raw/611add1f64bf2bc0762f6b810cf3c230d9f2c7b9/menu_makanan.json"
 
 class MainActivity : ComponentActivity() {
 
@@ -64,19 +65,51 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+
+    var daftarMakanan by remember { mutableStateOf<List<Makanan>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    suspend fun loadMakanan() {
+        isLoading = true
+        try {
+            daftarMakanan = RetrofitClient.apiService.getMakanan(MAKANAN_API_URL)
+            errorMessage = null
+        } catch (e: Exception) {
+            daftarMakanan = MakananSource.dummyMakanan
+            errorMessage = "Data dari server gagal dimuat"
+        }
+        isLoading = false
+    }
+
+    LaunchedEffect(Unit) {
+        loadMakanan()
+    }
 
     NavHost(
         navController = navController,
         startDestination = "home"
     ) {
         composable("home") {
-            DaftarMakananScreen(navController = navController)
+            DaftarMakananScreen(
+                navController = navController,
+                daftarMakanan = daftarMakanan,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
+                onRefresh = {
+                    scope.launch {
+                        loadMakanan()
+                    }
+                }
+            )
         }
 
         composable("detail/{index}") { backStackEntry ->
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
             DetailMakananScreen(
                 index = index,
+                daftarMakanan = daftarMakanan,
                 navController = navController
             )
         }
@@ -84,9 +117,13 @@ fun AppNavigation() {
 }
 
 @Composable
-fun DaftarMakananScreen(navController: NavController) {
-    val daftarMakanan = MakananSource.dummyMakanan
-
+fun DaftarMakananScreen(
+    navController: NavController,
+    daftarMakanan: List<Makanan>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onRefresh: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -102,23 +139,61 @@ fun DaftarMakananScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Pilih menu makanan yang ingin kamu lihat.",
+            text = "Menu makanan tersedia dan bisa dimuat ulang dari server.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Button(
+            onClick = onRefresh,
+            enabled = !isLoading
         ) {
-            itemsIndexed(daftarMakanan) { index, makanan ->
-                ItemMakanan(
-                    makanan = makanan,
-                    onDetailClick = {
-                        navController.navigate("detail/$index")
-                    }
+            Text(text = "Muat Ulang Menu")
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator()
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Memuat data menu...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+            }
+        } else {
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                itemsIndexed(daftarMakanan) { index, makanan ->
+                    ItemMakanan(
+                        makanan = makanan,
+                        onDetailClick = {
+                            navController.navigate("detail/$index")
+                        }
+                    )
+                }
             }
         }
     }
@@ -144,7 +219,7 @@ fun ItemMakanan(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = makanan.imageRes),
+                painter = painterResource(id = getImageResource(makanan.imageName)),
                 contentDescription = makanan.nama,
                 modifier = Modifier.size(95.dp),
                 contentScale = ContentScale.Crop
@@ -193,105 +268,71 @@ fun ItemMakanan(
 @Composable
 fun DetailMakananScreen(
     index: Int,
+    daftarMakanan: List<Makanan>,
     navController: NavController
 ) {
-    val daftarMakanan = MakananSource.dummyMakanan
-    val makanan = daftarMakanan.getOrElse(index) { daftarMakanan[0] }
+    val makanan = daftarMakanan.getOrElse(index) {
+        MakananSource.dummyMakanan[0]
+    }
 
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    var isLoading by remember { mutableStateOf(false) }
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
     ) {
-        Column(
+        Image(
+            painter = painterResource(id = getImageResource(makanan.imageName)),
+            contentDescription = makanan.nama,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            Image(
-                painter = painterResource(id = makanan.imageRes),
-                contentDescription = makanan.nama,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(230.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = makanan.nama,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = makanan.deskripsi,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Harga: Rp ${makanan.harga}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                enabled = !isLoading,
-                onClick = {
-                    scope.launch {
-                        isLoading = true
-                        delay(2000)
-                        isLoading = false
-                        snackbarHostState.showSnackbar("${makanan.nama} berhasil dipesan")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(text = "Memproses...")
-                } else {
-                    Text(text = "Pesan Sekarang")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Button(
-                enabled = !isLoading,
-                onClick = {
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Kembali")
-            }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
+                .fillMaxWidth()
+                .height(230.dp),
+            contentScale = ContentScale.Crop
         )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = makanan.nama,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = makanan.deskripsi,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Harga: Rp ${makanan.harga}",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = {
+                navController.popBackStack()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Kembali")
+        }
+    }
+}
+
+fun getImageResource(imageName: String): Int {
+    return when (imageName) {
+        "mieayam" -> R.drawable.mieayam
+        "dimsum" -> R.drawable.dimsum
+        "risoles" -> R.drawable.risoles
+        else -> R.drawable.mieayam
     }
 }
 
