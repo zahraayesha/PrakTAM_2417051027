@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -42,8 +41,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.praktam_2417051027.model.Makanan
-import com.example.praktam_2417051027.model.MakananSource
-import com.example.praktam_2417051027.model.RetrofitClient
+import com.example.praktam_2417051027.model.MakananRepository
 import com.example.praktam_2417051027.ui.theme.PrakTAM_2417051027Theme
 import kotlinx.coroutines.launch
 
@@ -73,13 +71,15 @@ fun AppNavigation() {
 
     suspend fun loadMakanan() {
         isLoading = true
+
         try {
-            daftarMakanan = RetrofitClient.apiService.getMakanan(MAKANAN_API_URL)
+            daftarMakanan = MakananRepository.getMakanan(MAKANAN_API_URL)
             errorMessage = null
         } catch (e: Exception) {
-            daftarMakanan = MakananSource.dummyMakanan
+            daftarMakanan = MakananRepository.getFallbackMakanan()
             errorMessage = "Data dari server gagal dimuat"
         }
+
         isLoading = false
     }
 
@@ -107,6 +107,7 @@ fun AppNavigation() {
 
         composable("detail/{index}") { backStackEntry ->
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: 0
+
             DetailMakananScreen(
                 index = index,
                 daftarMakanan = daftarMakanan,
@@ -139,7 +140,7 @@ fun DaftarMakananScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "Menu makanan tersedia dan bisa dimuat ulang dari server.",
+            text = "Pilih menu makanan yang kamu suka.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -222,9 +223,7 @@ fun ItemMakanan(
                 model = makanan.imageUrl,
                 contentDescription = makanan.nama,
                 modifier = Modifier.size(95.dp),
-                contentScale = ContentScale.Crop,
-                placeholder = painterResource(id = R.drawable.mieayam),
-                error = painterResource(id = R.drawable.mieayam)
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -274,7 +273,7 @@ fun DetailMakananScreen(
     navController: NavController
 ) {
     val makanan = daftarMakanan.getOrElse(index) {
-        MakananSource.dummyMakanan[0]
+        MakananRepository.getFallbackMakanan()[0]
     }
 
     Column(
@@ -289,9 +288,7 @@ fun DetailMakananScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(230.dp),
-            contentScale = ContentScale.Crop,
-            placeholder = painterResource(id = R.drawable.mieayam),
-            error = painterResource(id = R.drawable.mieayam)
+            contentScale = ContentScale.Crop
         )
 
         Spacer(modifier = Modifier.height(18.dp))
